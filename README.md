@@ -14,12 +14,25 @@ Diseño ergonómico: bordes suaves y dimensiones compactas.
 
 ---
 
-## ⚙️ Soporte interno para:
+## ⚙️ Soporte interno para dos configuraciones:
+
+### ESP32-C6 con BMS integrado:
  - ESP32-C6 Supermini.
+ - BMS: Integrado (ESP32-C6)
  - Pantalla OLED 0.96" 128x64 SSD1306.
  - Motor de vibración.
  - Controlador del motor.
- - Batería LiPo (150–500 mAh).
+ - Batería LiPo (300–700 mAh).
+ - Botón de 12x12 mm
+
+### ESP32-C3 con TP4056:
+ - ESP32-C3 Supermini.
+ - BMS: TP4056
+ - Pantalla OLED 0.96" 128x64 SSD1306.
+ - Motor de vibración.
+ - Controlador del motor.
+ - Batería LiPo (150–300 mAh).
+ - Botón de 12x12 mm
  - Variante opcional con switch físico de apagado.
 
  ---
