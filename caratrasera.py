@@ -1,20 +1,20 @@
 import cadquery as cq
-# Dimensiones en milÃ­metros
-length = 70       # 7cm
-width = 42        # 4.2cm
-base_thickness = 1.7  # 1.7mm
-corner_radius = 11  # 11mm
-wall_height = 9   # 9mm
-wall_thickness = 1.7 # 1.7mm
+
+# Dimensiones en milímetros
+length = 70
+width = 42
+base_thickness = 1.7
+corner_radius = 11
+wall_height = 9
+wall_thickness = 1.7
 
 # Dimensiones del hoyo circular del agujero del boton
-button_hole_r = 4
+button_hole_r = 3.7
 
 # Radio para el filete entre base y paredes
-base_wall_fillet = 4.5  # Radio de redondeo para la uniÃ³n base-pared
+base_wall_fillet = 4.5
 
-# MÃ©todo 1: Construir la caja como una sola pieza y hacer un corte interno
-# Crear la forma exterior de la caja completa (base + paredes)
+# Crear la caja exterior
 box_outer = (
     cq.Workplane("XY")
     .rect(length, width, centered=True)
@@ -26,7 +26,7 @@ box_outer = (
 # Crear la forma interior para vaciar la caja
 box_inner = (
     cq.Workplane("XY")
-    .workplane(offset=base_thickness)  # Comenzar desde la parte superior de la base
+    .workplane(offset=base_thickness)
     .rect(length - 2*wall_thickness, width - 2*wall_thickness, centered=True)
     .extrude(wall_height)
     .edges("|Z")
@@ -36,58 +36,88 @@ box_inner = (
 # Crear la caja con el interior hueco
 box = box_outer.cut(box_inner)
 
-# Aplicar redondeo en la interseccion interior entre base y paredes
-# Seleccionamos las aristas interiores donde la base se encuentra con las paredes
+# Aplicar redondeo en la intersección interior entre base y paredes
 box = box.edges("<<Z").fillet(base_wall_fillet)
 
-# Crear la hendidura en la pared trasera
+# Crear el agujero del botón
 button = (
     cq.Workplane("YZ")
-    .workplane(offset=length / 2 - 5 )
+    .workplane(offset=length / 2 - 5)
     .center(0, base_thickness + wall_height)
     .circle(button_hole_r)
     .extrude(5)
 )
 
+# Soportes del botón
 button_support = (
     cq.Workplane("XY")
-    .workplane(offset=base_thickness)  # Posicionar sobre la base interior
+    .workplane(offset=base_thickness)
     .center(length/2 - wall_thickness - 5.2, 0)
-    .rect(1.5, 9)  # Crear rectángulo del tope
-    .extrude(wall_height - 1)  # Extruir hacia arriba (más alto que el soporte)
+    .rect(1.5, 9)
+    .extrude(wall_height - 1)
 )
 
 button_support2 = (
     cq.Workplane("XY")
-    .workplane(offset=base_thickness)  # Posicionar sobre la base interior
-    .center(length/2 - wall_thickness -0.4, 0)
-    .rect(0.8, 9)  # Crear rectángulo del tope
-    .extrude(wall_height/2)  # Extruir hacia arriba (más alto que el soporte)
+    .workplane(offset=base_thickness)
+    .center(length/2 - wall_thickness - 0.4, 0)
+    .rect(0.8, 9)
+    .extrude(wall_height/2)
 )
 
-# Definir la posición del centro del soporte del motor
-center_x = 0
-# Crear el soporte (10 mm en X, 20 mm en Y, 4 mm en Z) - REDUCIDO 1mm
-soporteMotor = cq.Workplane("XY").workplane(offset=2).center(center_x, 0).box(20, 10, 4, centered=(True, True, False))
-# Crear el corte semicilíndrico (bajado 1mm en Z)
-cut_wire = cq.Workplane("YZ").workplane(offset=-10).moveTo(center_x - 3.5, 6).threePointArc((center_x, 6 - 3.5), (center_x + 3.5, 6)).close()
-cut_shape = cut_wire.extrude(20)
-# Aplicar el corte al soporte
-soporteMotor = soporteMotor.cut(cut_shape)
-# Mover todo el resultado final
-soporteMotor = soporteMotor.translate((-7, 0, 0))  # Mover 50mm en X
+# NUEVO SOPORTE DEL MOTOR EN FORMA DE HERRADURA
+# Parámetros del soporte del motor
+motor_inner_diameter = 11  # Diámetro interior para el motor
+motor_wall_thickness = 2   # Grosor de la pared del soporte
+motor_support_height = 3   # Altura del soporte sobre la base
+motor_outer_diameter = motor_inner_diameter + 2 * motor_wall_thickness
+gap_width = 4              # Ancho de la muesca para los cables
 
+# Posición del soporte del motor
+motor_position_x = -7
+motor_position_y = 0
 
-# Combinar elementos
+# Crear cilindro exterior
+motor_support_outer = (
+    cq.Workplane("XY")
+    .workplane(offset=base_thickness)
+    .center(motor_position_x, motor_position_y)
+    .circle(motor_outer_diameter / 2)
+    .extrude(motor_support_height)
+)
+
+# Crear cilindro interior (el hueco donde va el motor)
+motor_support_inner = (
+    cq.Workplane("XY")
+    .workplane(offset=base_thickness)
+    .center(motor_position_x, motor_position_y)
+    .circle(motor_inner_diameter / 2)
+    .extrude(motor_support_height)
+)
+
+# Crear la muesca/corte para los cables (forma de herradura)
+cable_gap = (
+    cq.Workplane("XY")
+    .workplane(offset=base_thickness)
+    .center(motor_position_x, motor_position_y - motor_outer_diameter / 2)
+    .rect(gap_width, motor_outer_diameter)
+    .extrude(motor_support_height)
+)
+
+# Ensamblar el soporte del motor: cilindro exterior - cilindro interior - muesca
+soporteMotor = motor_support_outer.cut(motor_support_inner).cut(cable_gap)
+
+# Combinar todos los elementos
 result = (
     box
     .cut(button)
     .union(soporteMotor)
     .union(button_support)
-    .union(button_support2))
+    .union(button_support2)
+)
 
 # Mostrar el resultado
 show_object(result)
 
 # Exportar a STL
-# cq.exporters.export(result, 'caraTraseraV31.stl')
+# cq.exporters.export(result, 'caraTrasera.stl')

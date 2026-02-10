@@ -212,4 +212,4 @@ result = (box
 show_object(result)
 
 # Exportar a STL
-# cq.exporters.export(result, 'caraPantallaV31.stl')
+# cq.exporters.export(result, 'caraPantalla.stl')
