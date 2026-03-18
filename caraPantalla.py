@@ -1,28 +1,28 @@
 import cadquery as cq
 
 # Dimensiones en milímetros (cuerpo)
-length = 70       # 7 cm
-width = 42        # 4.2 cm
-base_thickness = 1.7  # 1.7 mm
-corner_radius = 11  # 11 mm
-wall_height = 9   # 9 mm
-wall_thickness = 1.7  # 1.7 mm
+length = 70       # 7cm
+width = 42        # 4cm
+base_thickness = 1.7  # 2mm
+corner_radius = 11  # 11mm
+wall_height = 9   # 8mm
+wall_thickness = 1.7  # 1.7mm
 
-# Radio para el filete entre base y paredes
+# Radio para el filete entre base y paredes (como en cajaRedondeada)
 base_wall_fillet = 4.2  # Radio de redondeo para la unión base-pared
 
 # Dimensiones del recorte de la pantalla
-cutout_length = 17.6 # 17.6 mm
-cutout_width = 25.5   # 25.5mm
+cutout_length = 14 # 17.8 mm
+cutout_width = 23   # 25.5mm
 cutout_offset_x = 12  # Desplazamiento en X
 
 # Dimensiones de los agujeros para la pantalla
-pillar_diameter = 1.8  # 1.8mm (diámetro del agujero interior)
+pillar_diameter = 1.6  # 1.8mm (diámetro del agujero interior)
 pillar_wall_thickness = 1  # Grosor de la pared alrededor del agujero
 pillar_outer_diameter = pillar_diameter + 2 * pillar_wall_thickness  # Diámetro exterior
-pillar_height = 3     # 3mm (altura original)
-pillar_wall_height = 1.5  # La mitad de la altura original
-pillar_hole_depth = 2  # Profundidad del agujero
+pillar_height = 3.5     # 3mm (altura original)
+pillar_wall_height = 2  # La mitad de la altura original
+pillar_hole_depth = 2  # Profundidad del agujero (deja 1mm en el fondo)
 square_size = 22      # 2.2cm cuadrado imaginario para posicionar los pilares
 
 
@@ -40,13 +40,13 @@ inner_wall_height_extra = 2.2  # Las nuevas paredes serán 2.5mm más altas que 
 inner_wall_start_height = 1  # Empezar un poco más arriba del filete
 
 # Dimensiones del soporte USB-C
-support_height = usb_vertical_offset  # Altura igual al offset del USB
-support_length_x = 26.5  # 26.5mm en dirección X
+support_height = usb_vertical_offset  # Altura igual al offset del USB (1.4mm)
+support_length_x = 26.5  # 22mm en dirección X
 support_length_y = 7   # 7mm en dirección Y
 
 # Dimensiones del tope al final del soporte
 tope_height = usb_vertical_offset + 3.6  # Altura del tope (más alto que el soporte)
-tope_length_x = 2.4  # 2.4mm en dirección X
+tope_length_x = 2.4  # 2mm en dirección X
 tope_length_y = support_length_y  # Mismas dimensiones en Y que el soporte
 
 # ENFOQUE DE cajaRedondeada: Crear la forma exterior de la caja completa (base + paredes)
@@ -120,7 +120,7 @@ pillar_positions = [
 # Crear las paredes circulares alrededor de los agujeros
 pillar_walls = (
     cq.Workplane("XY")
-    .center(cutout_offset_x, 0)  # Centrar en el mismo punto que el recorte
+    .center(cutout_offset_x - 0.5, 0)  # Centrar en el mismo punto que el recorte
     .pushPoints(pillar_positions)
     .circle(pillar_outer_diameter / 2)  # Diámetro exterior
     .circle(pillar_diameter / 2)  # Diámetro interior (agujero)
@@ -130,14 +130,14 @@ pillar_walls = (
 # Crear los agujeros que NO atraviesan completamente la base (dejan 1mm en el fondo)
 pillar_holes = (
     cq.Workplane("XY")
-    .center(cutout_offset_x, 0)  # Centrar en el mismo punto que el recorte
+    .center(cutout_offset_x - 0.5, 0)  # Centrar en el mismo punto que el recorte
     .pushPoints(pillar_positions)
     .circle(pillar_diameter / 2)  # Diámetro del agujero
     .extrude(-pillar_hole_depth)  # Profundidad del agujero (desde la parte superior)
 )
 
 # Dimensiones del hoyo circular del agujero del boton
-button_hole_r = 4
+button_hole_r = 3.7
 
 button = (
     cq.Workplane("YZ")
@@ -196,6 +196,8 @@ tope_hole = (
     .extrude(-tope_height/2)  # Hacer el agujero desde arriba hasta la mitad del tope
 )
 
+selector_hoyo = cq.selectors.BoxSelector((4, -13, -0.5), (20, 13, 0.5))
+
 # Combinar todos los elementos y restar la hendidura, los agujeros y el agujero USB-C
 result = (box
          .union(inner_walls)
@@ -206,7 +208,8 @@ result = (box
          .cut(pillar_holes)  # Hacer los agujeros en la base
          .cut(button)
          .cut(usb_hole)
-         .cut(tope_hole))
+         .cut(tope_hole)
+         .edges(selector_hoyo).chamfer(1.5))
 
 # Mostrar el resultado
 show_object(result)
